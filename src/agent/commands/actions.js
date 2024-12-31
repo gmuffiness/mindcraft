@@ -406,6 +406,32 @@ export const actionsList = [
             convoManager.endConversation(player_name);
             return `Converstaion with ${player_name} ended.`;
         }
+    },
+    {
+        name: '!readSigns',
+        description: '주변의 모든 표지판을 찾아서 하나씩 읽습니다.',
+        params: { },
+        perform: runAsAction(async (agent) => {
+            await skills.readAllNearbySigns(agent.bot);
+        })
+    },
+    {
+        name: '!activateButtonOn',
+        description: '특정 블록 위에 있는 버튼을 활성화합니다.',
+        params: {
+            'blockType': { type: 'string', description: '버튼이 설치된 블록의 종류 (예: gold_block)' }
+        },
+        perform: runAsAction(async (agent, blockType) => {
+            await skills.activateButtonOnBlock(agent.bot, blockType);
+        })
+    },
+    {
+        name: '!stepOnPlate',
+        description: '주변에서 가장 가까운 발판을 찾아서 밟습니다.',
+        params: { },
+        perform: runAsAction(async (agent) => {
+            await skills.stepOnPressurePlate(agent.bot);
+        })
     }
     // { // commented for now, causes confusion with goal command
     //     name: '!npcGoal',

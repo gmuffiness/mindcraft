@@ -1332,3 +1332,199 @@ export async function activateNearestBlock(bot, type) {
     log(bot, `Activated ${type} at x:${block.position.x.toFixed(1)}, y:${block.position.y.toFixed(1)}, z:${block.position.z.toFixed(1)}.`);
     return true;
 }
+
+export async function readAllNearbySigns(bot) {
+    /**
+     * 주변의 모든 표지판을 찾아서 하나씩 읽습니다.
+     * @param {MinecraftBot} bot, reference to the minecraft bot.
+     * @returns {Promise<boolean>} 하나 이상의 표지판을 읽었으면 true, 아니면 false를 반환합니다.
+     * @example
+     * await skills.readAllNearbySigns(bot);
+     **/
+    
+    const signTypes = [
+        'oak_sign', 'spruce_sign', 'birch_sign', 'jungle_sign', 
+        'acacia_sign', 'dark_oak_sign', 'mangrove_sign', 'bamboo_sign',
+        'oak_wall_sign', 'spruce_wall_sign', 'birch_wall_sign', 'jungle_wall_sign',
+        'acacia_wall_sign', 'dark_oak_wall_sign', 'mangrove_wall_sign', 'bamboo_wall_sign'
+    ];
+
+    // 모든 표지판 찾기
+    const signs = bot.findBlocks({
+        matching: block => signTypes.includes(block.name),
+        // maxDistance: 32,
+        maxDistance: 10,
+        count: 999 // 최대 개수
+    });
+
+    if (signs.length === 0) {
+        log(bot, '주변에서 표지판을 찾을 수 없습니다!');
+        return false;
+    }
+
+    // 볼 수 있는 표지판만 필터링
+    const visibleSigns = signs.filter(pos => {
+        const block = bot.blockAt(pos);
+        return block && bot.canSeeBlock(block);
+    });
+
+    if (visibleSigns.length === 0) {
+        log(bot, '주변에서 볼 수 있는 표지판이 없습니다!');
+        return false;
+    }
+
+    log(bot, `주변에서 볼 수 있는 표지판 ${visibleSigns.length}개를 발견했습니다.`);
+    let readCount = 0;
+
+    // 각 표지판을 방문하여 읽기
+    for (const signPos of visibleSigns) {
+        if (bot.interrupt_code) break;
+
+        const sign = bot.blockAt(signPos);
+        if (!sign) continue;
+
+        // 표지판으로 이동
+        if (bot.entity.position.distanceTo(signPos) > 4.5) {
+            await goToPosition(bot, signPos.x, signPos.y, signPos.z, 4);
+        }
+        // 표지판을 바라보기
+        await bot.lookAt(signPos);
+        
+        // 바라본 후에도 여전히 볼 수 있는지 확인
+        if (!bot.canSeeBlock(sign)) {
+            log(bot, `${signPos.x}, ${signPos.y}, ${signPos.z}의 표지판이 보이지 않습니다.`);
+            continue;
+        }
+
+        // 표지판 텍스트 읽기
+        let text = [];
+        try {
+            text = sign.getSignText();
+        } catch (err) {
+            log(bot, `${signPos.x}, ${signPos.y}, ${signPos.z}의 표지판을 읽는데 실패했습니다.`);
+            continue;
+        }
+
+        // if (!text || text.every(line => line === '')) {
+        //     log(bot, `${signPos.x}, ${signPos.y}, ${signPos.z}의 표지판이 비어있습니다.`);
+        //     continue;
+        // }
+
+        // 비어있지 않은 줄만 출력
+        const lines = text.filter(line => line !== '');
+        // log(bot, `\n${signPos.x}, ${signPos.y}, ${signPos.z}의 표지판 내용:`);
+        log(bot, ` ${readCount+1}번째 표지판 내용:`);
+        lines.forEach(line => log(bot, line));
+        readCount++;
+
+        // 잠시 대기하여 너무 빠르게 진행되지 않도록 함
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    if (readCount > 0) {
+        log(bot, `총 ${readCount}개의 표지판을 읽었습니다.`);
+        return true;
+    } else {
+        log(bot, '읽을 수 있는 표지판이 없었습니다.');
+        return false;
+    }
+}
+
+export async function activateButtonOnBlock(bot, blockType) {
+    /**
+     * 특정 블록 위에 있는 버튼을 활성화합니다.
+     * @param {MinecraftBot} bot, reference to the minecraft bot.
+     * @param {string} blockType, 버튼이 설치된 블록의 종류 (예: "gold_block")
+     * @returns {Promise<boolean>} true if the button was activated, false otherwise.
+     * @example
+     * await skills.activateButtonOnBlock(bot, "gold_block");
+     **/
+    
+    // 먼저 지정된 블록을 찾습니다
+    let baseBlock = world.getNearestBlock(bot, blockType, 16);
+    if (!baseBlock) {
+        log(bot, `Could not find any ${blockType} nearby.`);
+        return false;
+    }
+
+    // 블록 주변(위, 북, 남, 동, 서)에서 버튼을 찾습니다
+    const buttonTypes = [
+        'stone_button', 'oak_button', 'spruce_button', 'birch_button', 
+        'jungle_button', 'acacia_button', 'dark_oak_button', 'crimson_button', 
+        'warped_button', 'polished_blackstone_button'
+    ];
+
+    // 블록 주변 위치를 확인
+    const positions = [
+        baseBlock.position.offset(0, 1, 0), // 위
+        baseBlock.position.offset(0, 0, 1), // 북
+        baseBlock.position.offset(0, 0, -1), // 남
+        baseBlock.position.offset(1, 0, 0), // 동
+        baseBlock.position.offset(-1, 0, 0), // 서
+    ];
+
+    let button = null;
+    for (let pos of positions) {
+        const block = bot.blockAt(pos);
+        if (block && buttonTypes.includes(block.name)) {
+            button = block;
+            break;
+        }
+    }
+
+    if (!button) {
+        log(bot, `Could not find any button on the ${blockType}.`);
+        return false;
+    }
+
+    // 버튼이 있는 위치로 이동
+    if (bot.entity.position.distanceTo(button.position) > 4.5) {
+        let pos = button.position;
+        bot.pathfinder.setMovements(new pf.Movements(bot));
+        await bot.pathfinder.goto(new pf.goals.GoalNear(pos.x, pos.y, pos.z, 4));
+    }
+
+    // 버튼 활성화
+    await bot.lookAt(button.position);
+    await bot.activateBlock(button);
+    log(bot, `Activated button at x:${button.position.x.toFixed(1)}, y:${button.position.y.toFixed(1)}, z:${button.position.z.toFixed(1)}.`);
+    return true;
+}
+
+export async function stepOnPressurePlate(bot) {
+    /**
+     * 주변에서 가장 가까운 발판을 찾아서 밟습니다.
+     * @param {MinecraftBot} bot, reference to the minecraft bot.
+     * @returns {Promise<boolean>} true if the pressure plate was stepped on, false otherwise.
+     * @example
+     * await skills.stepOnPressurePlate(bot);
+     **/
+    
+    const pressurePlateTypes = [
+        'stone_pressure_plate', 'oak_pressure_plate', 'spruce_pressure_plate', 
+        'birch_pressure_plate', 'jungle_pressure_plate', 'acacia_pressure_plate', 
+        'dark_oak_pressure_plate', 'crimson_pressure_plate', 'warped_pressure_plate',
+        'polished_blackstone_pressure_plate', 'light_weighted_pressure_plate', 
+        'heavy_weighted_pressure_plate'
+    ];
+
+    // 주변에서 발판 찾기
+    let plate = null;
+    for (let plateType of pressurePlateTypes) {
+        plate = world.getNearestBlock(bot, plateType, 16);
+        if (plate) break;
+    }
+
+    if (!plate) {
+        log(bot, `Could not find any pressure plate nearby.`);
+        return false;
+    }
+
+    // 발판 위로 이동
+    await goToPosition(bot, plate.position.x, plate.position.y, plate.position.z, 0);
+    log(bot, `Stepped on pressure plate at x:${plate.position.x.toFixed(1)}, y:${plate.position.y.toFixed(1)}, z:${plate.position.z.toFixed(1)}.`);
+    
+    // 잠시 대기하여 발판이 작동하도록 함
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return true;
+}
