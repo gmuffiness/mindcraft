@@ -18,7 +18,7 @@ export class Camera extends EventEmitter {
       super()
       this.bot = bot
       this.viewDistance = 4
-      this.width = 512
+      this.width = 800
       this.height = 512
       this.canvas = createCanvas(this.width, this.height)
       this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas })

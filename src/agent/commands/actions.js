@@ -439,7 +439,7 @@ export const actionsList = [
         })
     },
     {
-        name: '!lookAt',
+        name: '!look',
         description: 'Takes a screenshot of specified coordinates and analyzes its contents.',
         params: {
             'x': {

@@ -1338,9 +1338,9 @@ export async function takeScreenshot(bot, x, y, z, filename=null) {
     /**
      * Takes a screenshot from the bot's current view or specified position
      * @param {MinecraftBot} bot, reference to the minecraft bot
-     * @param {number} x x coordinate to look at (optional)
-     * @param {number} y y coordinate to look at (optional)
-     * @param {number} z z coordinate to look at (optional)
+     * @param {int} x x coordinate to look at (optional)
+     * @param {int} y y coordinate to look at (optional)
+     * @param {int} z z coordinate to look at (optional)
      * @param {string} filename filename to save (without extension). If not specified, saves with timestamp
      * @returns {Promise<boolean>} whether the screenshot was successful
      * @example
