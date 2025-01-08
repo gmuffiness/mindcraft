@@ -204,6 +204,17 @@ export const actionsList = [
         })
     },
     {
+        name: '!putInDropper',
+        description: 'Put the given item in the nearest dropper.',
+        params: {
+            'item_name': { type: 'ItemName', description: 'The name of the item to put in the dropper.' },
+            'num': { type: 'int', description: 'The number of items to put in the dropper.', domain: [1, Number.MAX_SAFE_INTEGER] }
+        },
+        perform: runAsAction(async (agent, item_name, num) => {
+            await skills.putInDropper(agent.bot, item_name, num);
+        })
+    },
+    {
         name: '!takeFromChest',
         description: 'Take the given items from the nearest chest.',
         params: {
@@ -329,10 +340,13 @@ export const actionsList = [
     },
     {
         name: '!stay',
-        description: 'Stay in the current location no matter what. Pauses all modes.',
-        params: {'type': { type: 'int', description: 'The number of seconds to stay. -1 for forever.', domain: [-1, Number.MAX_SAFE_INTEGER] }},
-        perform: runAsAction(async (agent, seconds) => {
-            await skills.stay(agent.bot, seconds);
+        description: 'Stay in the given location. Pauses all modes.',
+        params: {'x': { type: 'int', description: 'The x coordinate to stay at.'},
+                 'y': { type: 'int', description: 'The y coordinate to stay at.'},
+                 'z': { type: 'int', description: 'The z coordinate to stay at.'},
+                 'seconds': { type: 'int', description: 'The number of seconds to stay. -1 for forever.', domain: [-1, Number.MAX_SAFE_INTEGER] }},
+        perform: runAsAction(async (agent, x, y, z, seconds) => {
+            await skills.stay(agent.bot, x, y, z, seconds);
         })
     },
     {
@@ -431,6 +445,14 @@ export const actionsList = [
         params: { },
         perform: runAsAction(async (agent) => {
             await skills.stepOnPressurePlate(agent.bot);
+        })
+    },
+    {
+        name: '!walkThroughDoor',
+        description: '주변에서 가장 가까운 문을 찾아서 사용합니다.',
+        params: { },
+        perform: runAsAction(async (agent) => {
+            await skills.walkThroughDoor(agent.bot);
         })
     }
     // { // commented for now, causes confusion with goal command

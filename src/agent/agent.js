@@ -14,7 +14,7 @@ import { addViewer } from './viewer.js';
 import settings from '../../settings.js';
 import { serverProxy } from './agent_proxy.js';
 import { Task } from './tasks.js';
-
+import { useDoor, goToPosition, moveAway, takeFromChest } from './library/skills.js';
 export class Agent {
     async start(profile_fp, load_mem=false, init_message=null, count_id=0, task_path=null, task_id=null) {
         this.last_sender = null;
@@ -418,6 +418,103 @@ export class Agent {
             this.bot.modes.unPauseAll();
             this.actions.resumeAction();
         });
+        this.bot.on('blockUpdate', async (oldBlock, newBlock) => {
+            // console.log('oldBlock : ', oldBlock)
+            // console.log('newBlock : ', newBlock)
+            if (newBlock && newBlock.name === 'iron_door') {
+              console.log('철문이 업데이트되었습니다.');
+              const doorPos = newBlock.position;
+              console.log('doorPos : ', doorPos)
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              try {
+                await useDoor(this.bot, doorPos);
+                // await walkThroughDoor(this.bot, doorPos);
+              } catch (err) {
+                console.error('문을 통과하는 중 오류 발생:', err);
+              }
+            } else if (newBlock.name === 'iron_block') {
+                this.bot.chat('new iron_block at ' + newBlock.position.x + ', ' + newBlock.position.y + ', ' + newBlock.position.z)
+              }
+          });
+        // this.bot.on('blockUpdate', async (oldBlock, newBlock) => {
+        //     // console.log('oldBlock : ', oldBlock)
+        //     // console.log('newBlock : ', newBlock)
+        //     if (newBlock && newBlock.name === 'iron_door') {
+        //       console.log('철문이 업데이트되었습니다.');
+        //       const doorPos = newBlock.position;
+        //       console.log('doorPos : ', doorPos)
+        //       await new Promise(resolve => setTimeout(resolve, 1000));
+
+        //       try {
+        //         await useDoor(this.bot, doorPos);
+        //         // await walkThroughDoor(this.bot, doorPos);
+        //       } catch (err) {
+        //         console.error('문을 통과하는 중 오류 발생:', err);
+        //       }
+        //     } else if (newBlock.name === 'iron_block') {
+        //         let src_dst_pos_map = {};
+        //         if (this.bot.entity.position.z >= 22 && this.bot.entity.position.z <= 43) {
+        //             // first stage
+        //             src_dst_pos_map = {
+        //                 '4,237,26': '4,238,29',
+        //                 '4,237,32': '4,238,35',
+        //                 '4,237,38': '3,238,43',
+        //             }
+        //         } else if (this.bot.entity.position.z >= 64 && this.bot.entity.position.x <= 81) {
+        //             // second stage
+        //             if (this.bot.entity.position.x >= 1 && this.bot.entity.position.x <= 5) {
+        //                 src_dst_pos_map = {
+        //                     '4,233,71': '4,235,73',
+        //                     '4,235,74': '3,237,76',
+        //                 }        
+        //             } else {
+        //                 src_dst_pos_map = {
+        //                     '-6,235,72': '-6,238,74',
+        //                     '-4,233,71': '-5,236,71',
+        //                 }
+        //             }
+        //         } else {
+        //             console.log('nothing happened')
+        //             src_dst_pos_map = {
+        //                 '4,232,107': '-6,238,74',
+        //                 '-4,233,71': '-5,236,71',
+        //             }
+        //         }
+
+        //         // console.log('src_dst_pos_map : ', src_dst_pos_map)
+        //         console.log('new iron_block at ', newBlock.position)
+        //         this.bot.chat('new iron_block at ' + newBlock.position.x + ', ' + newBlock.position.y + ', ' + newBlock.position.z)
+            
+        //         const src_pos = newBlock.position.x + ',' + newBlock.position.y + ',' + newBlock.position.z
+        //         console.log('src_pos : ', src_pos)
+        //         console.log('src_dst_pos_map[src_pos] : ', src_dst_pos_map[src_pos])
+        //         if (src_dst_pos_map[src_pos]) {
+        //             const dst_pos = src_dst_pos_map[src_pos]
+        //             console.log('dst_pos : ', dst_pos)
+                    
+        //             await new Promise(resolve => setTimeout(resolve, 1000));
+        //             goToPosition(this.bot, dst_pos.split(',')[0], dst_pos.split(',')[1], dst_pos.split(',')[2]);
+        //             this.bot.chat('I moved to dst_pos : ' + dst_pos)
+                    
+        //             if (dst_pos == '3,237,76') {
+        //                 await new Promise(resolve => setTimeout(resolve, 2000));
+        //                 this.bot.chat('Mmm... Nothing to activate yet.')
+        //             } 
+        //         } else{
+        //             console.log('nothing happened')
+        //         }
+
+        //         if (newBlock.position.x == '4' && newBlock.position.y == '236' && newBlock.position.z == '77') {
+        //             await new Promise(resolve => setTimeout(resolve, 2000));
+        //             this.bot.chat('Oh I found a chest! There is two papers in it.')
+        //             await takeFromChest(this.bot, 'paper', -1);
+        //             this.bot.chat('I took two papers.')
+        //         }
+
+
+        //       }
+        //   });
 
         // Init NPC controller
         this.npc.init();

@@ -789,6 +789,35 @@ export async function putInChest(bot, itemName, num=-1) {
     return true;
 }
 
+export async function putInDropper(bot, itemName, num=-1) {
+    /**
+     * Put the given item in the nearest dropper.
+     * @param {MinecraftBot} bot, reference to the minecraft bot.
+     * @param {string} itemName, the item or block name to put in the dropper.
+     * @param {number} num, the number of items to put in the dropper. Defaults to -1, which puts all items.
+     * @returns {Promise<boolean>} true if the item was put in the dropper, false otherwise.
+     * @example
+     * await skills.putInDropper(bot, "oak_log");
+     **/
+    let dropper = world.getNearestBlock(bot, 'dropper', 32);
+    if (!dropper) {
+        log(bot, `Could not find a dropper nearby.`);
+        return false;
+    }
+    let item = bot.inventory.items().find(item => item.name === itemName);
+    if (!item) {
+        log(bot, `You do not have any ${itemName} to put in the dropper.`);
+        return false;
+    }
+    let to_put = num === -1 ? item.count : Math.min(num, item.count);
+    await goToPosition(bot, dropper.position.x, dropper.position.y, dropper.position.z, 2);
+    const dropperContainer = await bot.openContainer(dropper);
+    await dropperContainer.deposit(item.type, null, to_put);
+    await dropperContainer.close();
+    log(bot, `Successfully put ${to_put} ${itemName} in the dropper.`);
+    return true;
+}
+
 export async function takeFromChest(bot, itemName, num=-1) {
     /**
      * Take the given item from the nearest chest.
@@ -947,8 +976,22 @@ export async function goToPosition(bot, x, y, z, min_distance=2) {
         log(bot, `Teleported to ${x}, ${y}, ${z}.`);
         return true;
     }
-    bot.pathfinder.setMovements(new pf.Movements(bot));
-    await bot.pathfinder.goto(new pf.goals.GoalNear(x, y, z, min_distance));
+    const adventureMovements = new pf.Movements(bot);
+    adventureMovements.canDig = false;
+    adventureMovements.canPlaceOn = false;
+    let goal = new pf.goals.GoalNear(x, y, z, min_distance);
+    let path = await bot.pathfinder.getPathTo(adventureMovements, goal, 100);
+    console.log(path);
+    bot.pathfinder.setMovements(adventureMovements);
+    
+    console.log('x,y,z,min_distance : ', x, y, z, min_distance) 
+    if (min_distance == 0) {
+        await bot.pathfinder.goto(new pf.goals.GoalBlock(x, y, z));
+        // await bot.pathfinder.setGoal(new pf.goals.GoalBlock(x, y, z), true);
+    } else {
+        await bot.pathfinder.goto(new pf.goals.GoalNear(x, y, z, min_distance));
+    }
+
     log(bot, `You have reached at ${x}, ${y}, ${z}.`);
     return true;
 }
@@ -1097,7 +1140,9 @@ export async function moveAway(bot, distance) {
         }
     }
 
-    await bot.pathfinder.goto(inverted_goal);
+    // await bot.pathfinder.goto(inverted_goal);
+    bot.pathfinder.setGoal(inverted_goal);
+    
     let new_pos = bot.entity.position;
     log(bot, `Moved away from nearest entity to ${new_pos}.`);
     return true;
@@ -1148,7 +1193,7 @@ export async function avoidEnemies(bot, distance=16) {
     return true;
 }
 
-export async function stay(bot, seconds=30) {
+export async function stay(bot, x=null, y=null, z=null, seconds=30) {
     /**
      * Stay in the current position until interrupted. Disables all modes.
      * @param {MinecraftBot} bot, reference to the minecraft bot.
@@ -1164,6 +1209,8 @@ export async function stay(bot, seconds=30) {
     bot.modes.pause('hunting');
     bot.modes.pause('torch_placing');
     bot.modes.pause('item_collecting');
+
+    await goToPosition(bot, x, y, z, 0);
     let start = Date.now();
     while (!bot.interrupt_code && (seconds === -1 || Date.now() - start < seconds*1000)) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -1196,25 +1243,87 @@ export async function useDoor(bot, door_pos=null) {
         return false;
     }
 
-    bot.pathfinder.setGoal(new pf.goals.GoalNear(door_pos.x, door_pos.y, door_pos.z, 1));
+    const adventureMovements = new pf.Movements(bot);
+    adventureMovements.canDig = false;
+    adventureMovements.canPlaceOn = false;
+    bot.pathfinder.setMovements(adventureMovements);
+
+    console.log('moveAway start')
+    await moveAway(bot, 2);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log('moveAway finished')
+
+    // bot.pathfinder.setGoal(new pf.goals.GoalNear(door_pos.x, door_pos.y, door_pos.z, 1));
+    bot.pathfinder.setGoal(new pf.goals.GoalBlock(door_pos.x, door_pos.y+1, door_pos.z-2));
     await new Promise((resolve) => setTimeout(resolve, 1000));
     while (bot.pathfinder.isMoving()) {
         await new Promise((resolve) => setTimeout(resolve, 100));
     }
     
-    let door_block = bot.blockAt(door_pos);
-    await bot.lookAt(door_pos);
-    if (!door_block._properties.open)
-        await bot.activateBlock(door_block);
+    // let door_block = bot.blockAt(door_pos);
     
-    bot.setControlState("forward", true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    bot.setControlState("forward", false);
-    await bot.activateBlock(door_block);
+    // await bot.lookAt(door_pos);
+    await bot.lookAt(new Vec3(door_pos.x+0.5, door_pos.y+1, door_pos.z));
+    console.log('lookat finished')
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    log(bot, `Used door at ${door_pos}.`);
+    // if (!door_block._properties.open)
+    //     await bot.activateBlock(door_block);
+    
+    await moveForwardFor(bot, 1000);
+    // bot.setControlState("forward", true);
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
+    // bot.setControlState("forward", false);
+    // console.log('setControlState finished')
+
+    // console.log('door_block : ', door_block)
+    // console.log('finished')
+    // await bot.activateBlock(door_block);
+
+    // log(bot, `Used door at ${door_pos}.`);
     return true;
 }
+
+  
+export async function walkThroughDoor(bot, door_pos=null) {
+    if (!door_pos) {
+        for (let door_type of ['iron_door', 'oak_door', 'spruce_door', 'birch_door', 'jungle_door', 'acacia_door', 'dark_oak_door',
+                               'mangrove_door', 'cherry_door', 'bamboo_door', 'crimson_door', 'warped_door']) {
+            door_pos = world.getNearestBlock(bot, door_type, 5);
+            console.log('door_type : ', door_type)
+            console.log('door_pos : ', door_pos)
+            if (door_pos) {
+                door_pos = new Vec3(door_pos.position.x, door_pos.position.y, door_pos.position.z);
+                break;
+            }
+        }
+    } else {
+        door_pos = Vec3(door_pos.x, door_pos.y, door_pos.z);
+    }
+
+    console.log('setMovements start')
+    const adventureMovements = new pf.Movements(bot);
+    adventureMovements.canDig = false;
+    adventureMovements.canPlaceOn = false;
+    bot.pathfinder.setMovements(adventureMovements);
+    console.log('setMovements finished')
+
+    console.log('moveAway start')
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await moveAway(bot, 2);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log('moveAway finished')
+
+    await goToPosition(bot, door_pos.x, door_pos.y, door_pos.z-2, 0);
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    await bot.lookAt(new Vec3(door_pos.x+0.5, door_pos.y+1, door_pos.z));
+    await new Promise(resolve => setTimeout(resolve, 2000));    
+    // 앞으로 걷기
+    bot.setControlState("forward", true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    bot.setControlState("forward", false);
+  }
+  
 
 export async function goToBed(bot) {
     /**
@@ -1488,6 +1597,9 @@ export async function activateButtonOnBlock(bot, blockType) {
     await bot.lookAt(button.position);
     await bot.activateBlock(button);
     log(bot, `Activated button at x:${button.position.x.toFixed(1)}, y:${button.position.y.toFixed(1)}, z:${button.position.z.toFixed(1)}.`);
+    
+
+    await followPlayer(bot, "Muffin5367", 2);
     return true;
 }
 
@@ -1508,23 +1620,86 @@ export async function stepOnPressurePlate(bot) {
         'heavy_weighted_pressure_plate'
     ];
 
-    // 주변에서 발판 찾기
-    let plate = null;
-    for (let plateType of pressurePlateTypes) {
-        plate = world.getNearestBlock(bot, plateType, 16);
-        if (plate) break;
-    }
+    // 모든 표지판 찾기
+    const plates = bot.findBlocks({
+        matching: block => pressurePlateTypes.includes(block.name),
+        // maxDistance: 32,
+        maxDistance: 50,
+        count: 10 // 최대 개수
+    });
 
-    if (!plate) {
-        log(bot, `Could not find any pressure plate nearby.`);
+
+    if (plates.length === 0) {
+        log(bot, '주변에서 표지판을 찾을 수 없습니다!');
         return false;
     }
 
+    // 볼 수 있는 표지판만 필터링
+    const visiblePlates = plates.filter(pos => {
+        const block = bot.blockAt(pos);
+        return block && bot.canSeeBlock(block);
+    });
+    log(bot, 'visiblePlates : ', visiblePlates);
+
+    if (visiblePlates.length === 0) {
+        log(bot, '주변에서 볼 수 있는 표지판이 없습니다!');
+        return false;
+    }
+
+    log(bot, `주변에서 볼 수 있는 발판 ${visiblePlates.length}개를 발견했습니다.`);
+    let readCount = 0;
+
+    // 각 표지판을 방문하여 읽기
+    let platePos = visiblePlates[0];
+    console.log('platePos : ', platePos)
     // 발판 위로 이동
-    await goToPosition(bot, plate.position.x, plate.position.y, plate.position.z, 0);
-    log(bot, `Stepped on pressure plate at x:${plate.position.x.toFixed(1)}, y:${plate.position.y.toFixed(1)}, z:${plate.position.z.toFixed(1)}.`);
+    await goToPosition(bot, platePos.x, platePos.y, platePos.z, 0);
+    log(bot, `Stepped on pressure plate at x:${platePos.x.toFixed(1)}, y:${platePos.y.toFixed(1)}, z:${platePos.z.toFixed(1)}.`);
+        
+    // 특정 좌표를 바라보도록 설정
+    const lookAtPos = new Vec3(platePos.x, platePos.y, platePos.z - 2); // z축으로 2블록 뒤를 바라봄
+    await bot.lookAt(lookAtPos);
+    await goToPosition(bot, platePos.x, platePos.y, platePos.z - 2, 0);
     
-    // 잠시 대기하여 발판이 작동하도록 함
-    await new Promise(resolve => setTimeout(resolve, 500));
     return true;
+    
+    return true;
+
+
+    // // 주변에서 발판 찾기
+    // let plate = null;
+    // for (let plateType of pressurePlateTypes) {
+    //     plate = world.getNearestBlock(bot, plateType, 16);
+    //     console.log('plate : ', plate)
+    //     // if (plate) break;
+    //     if (bot.canSeeBlock(plate)) break;
+    // }
+
+    // if (!plate) {
+    //     log(bot, `Could not find any pressure plate nearby.`);
+    //     return false;
+    // }
+
+    // 발판 위로 이동
+    // await goToPosition(bot, plate.position.x, plate.position.y, plate.position.z, 0);
+    // log(bot, `Stepped on pressure plate at x:${plate.position.x.toFixed(1)}, y:${plate.position.y.toFixed(1)}, z:${plate.position.z.toFixed(1)}.`);
+    
+    // // 잠시 대기하여 발판이 작동하도록 함
+    // await new Promise(resolve => setTimeout(resolve, 500));
+    // return true;
+}
+
+export async function moveForwardFor(bot, duration) {
+    return new Promise((resolve) => {
+        const startTime = Date.now();
+        const checkInterval = setInterval(() => {
+            if (Date.now() - startTime >= duration) {
+                clearInterval(checkInterval);
+                bot.setControlState("forward", false);
+                resolve();
+            } else {
+                bot.setControlState("forward", true);
+            }
+        }, 50);  // 50ms마다 체크
+    });
 }
