@@ -1,6 +1,6 @@
 export default 
 {
-    "minecraft_version": "1.20.4", // supports up to 1.21.1
+    "minecraft_version": "1.20.1", // supports up to 1.21.1
     "host": "127.0.0.1", // or "localhost", "your.ip.address.here"
     "port": 55916,
     "auth": "offline", // or "microsoft"
@@ -11,7 +11,11 @@ export default
     "mindserver_port": 8080,
     
     "profiles": [
-        "./andy.json",
+        // "./andy.json",
+        // "./profiles/azure_gpt_private.json",
+        // "./profiles/artist.json",
+        // "./profiles/merchant.json",
+        "./profiles/sage.json",
         // "./profiles/gpt.json",
         // "./profiles/claude.json",
         // "./profiles/gemini.json",
@@ -28,7 +32,7 @@ export default
     "language": "en", // translate to/from this language. Supports these language names: https://cloud.google.com/translate/docs/languages
     "show_bot_views": false, // show bot's view in browser at localhost:3000, 3001...
 
-    "allow_insecure_coding": false, // allows newAction command and model can write/run code on your computer. enable at own risk
+    "allow_insecure_coding": true, // allows newAction command and model can write/run code on your computer. enable at own risk
     "code_timeout_mins": 10, // minutes code is allowed to run. -1 for no timeout
 
     "max_messages": 15, // max number of messages to keep in context
