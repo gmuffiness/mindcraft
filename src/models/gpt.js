@@ -37,7 +37,7 @@ export class GPT {
             pack.model = this.model_name || "gpt-3.5-turbo";
         }
 
-        if (!this.isAzure && this.model_name.includes('o1')) {
+        if (this.model_name.includes('o1')) {
             pack.messages = strictFormat(messages);
             delete pack.stop;
         }

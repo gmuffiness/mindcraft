@@ -7,15 +7,15 @@ export default
 
     // the mindserver manages all agents and hosts the UI
     "host_mindserver": true, // if true, the mindserver will be hosted on this machine. otherwise, specify a public IP address
-    "mindserver_host": "localhost",
+    "mindserver_host": "localhost", 
     "mindserver_port": 8080,
     
     "profiles": [
         // "./andy.json",
         // "./profiles/azure_gpt_private.json",
-        // "./profiles/artist.json",
+        "./profiles/architect.json",
         // "./profiles/merchant.json",
-        "./profiles/sage.json",
+        // "./profiles/sage.json",
         // "./profiles/gpt.json",
         // "./profiles/claude.json",
         // "./profiles/gemini.json",
@@ -26,7 +26,7 @@ export default
         // using more than 1 profile requires you to /msg each bot indivually
     ],
     "load_memory": false, // load memory from previous session
-    "init_message": "Respond with hello world and your name", // sends to all on spawn
+    // "init_message": "Respond with hello world and your name", // sends to all on spawn
     "only_chat_with": [], // users that the bots listen to and send general messages to. if empty it will chat publicly
     
     "language": "en", // translate to/from this language. Supports these language names: https://cloud.google.com/translate/docs/languages
