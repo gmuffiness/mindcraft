@@ -1332,3 +1332,68 @@ export async function activateNearestBlock(bot, type) {
     log(bot, `Activated ${type} at x:${block.position.x.toFixed(1)}, y:${block.position.y.toFixed(1)}, z:${block.position.z.toFixed(1)}.`);
     return true;
 }
+
+export async function harvest(bot, type, quantity) {
+    /**
+     * Harvest the specified type and quantity of crops.
+     * @param {MinecraftBot} bot, reference to the minecraft bot.
+     * @param {string} type, the type of crop to harvest (e.g., wheat).
+     * @param {number} quantity, the quantity of crops to harvest.
+     * @returns {Promise<boolean>} true if the crops were harvested, false otherwise.
+     * @example
+     * await skills.harvest(bot, "wheat", 5);
+     **/
+    const validCrops = ['wheat_seeds', 'wheat', 'carrots', 'potatoes', 'beetroot'];
+    if (!validCrops.includes(type)) {
+        log(bot, `Sorry, ${type} is not a valid crop type. Valid types are: ${validCrops.join(', ')}`);
+        return false;
+    }
+
+    let harvestedCount = 0;
+    while (harvestedCount < quantity) {
+        let block = world.getNearestBlock(bot, type, 32);
+        if (!block) {
+            log(bot, `Could only find and harvest ${harvestedCount} ${type}. No more found nearby.`);
+            return harvestedCount > 0;
+        }
+
+        // 작물의 성장도 확인
+        if ((type === "wheat_seeds" || type === "carrots" || type === "potatoes") && block.metadata < 7) {
+            log(bot, `Skipping immature ${type}. Maturity: [${block.metadata}/7]`);
+            continue;
+        } else if (type === "beetroot" && block.metadata < 3) {
+            log(bot, `Skipping immature ${type}. Maturity: [${block.metadata}/3]`);
+            continue;
+        }
+
+        // 블록까지 이동
+        if (bot.entity.position.distanceTo(block.position) > 2.5) {
+            let pos = block.position;
+            bot.pathfinder.setMovements(new pf.Movements(bot));
+            await bot.pathfinder.goto(new pf.goals.GoalNear(pos.x, pos.y, pos.z, 2));
+        }
+
+        // 괭이 장비
+        let hoe = bot.inventory.items().find(item => item.name.includes('hoe'));
+        if (!hoe) {
+            log(bot, `Cannot harvest, no hoe in inventory.`);
+            return harvestedCount > 0;
+        }
+        await bot.equip(hoe, 'hand');
+
+        // 수확
+        await bot.dig(block);
+        await bot.waitForTicks(4);
+        harvestedCount++;
+        log(bot, `Harvested ${harvestedCount}/${quantity} ${type}`);
+
+        if (bot.interrupt_code) {
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    log(bot, `Successfully harvested ${harvestedCount} ${type}`);
+    await goToPlayer(bot, 'Muffin5367', 2);
+    return true;
+}

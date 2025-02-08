@@ -406,6 +406,17 @@ export const actionsList = [
             convoManager.endConversation(player_name);
             return `Converstaion with ${player_name} ended.`;
         }
+    },
+    {
+        name: '!harvest',
+        description: 'Harvest the specified type of crop.',
+        params: { 
+          'type': { type: 'string', description: 'The type of crop to harvest (e.g., wheat).' },
+          'quantity': { type: 'int', description: 'The quantity of crops to harvest.', domain: [1, Number.MAX_SAFE_INTEGER] }
+        },
+        perform: runAsAction(async (agent, type, quantity) => {
+            await skills.harvest(agent.bot, type, quantity);
+        })
     }
     // { // commented for now, causes confusion with goal command
     //     name: '!npcGoal',

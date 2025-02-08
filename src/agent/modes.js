@@ -254,16 +254,16 @@ const modes_list = [
             }
             if (!entity_in_view)
                 this.last_entity = null;
-            if (Date.now() > this.next_change) {
-                // look in random direction
-                this.staring = Math.random() < 0.3;
-                if (!this.staring) {
-                    const yaw = Math.random() * Math.PI * 2;
-                    const pitch = (Math.random() * Math.PI/2) - Math.PI/4;
-                    agent.bot.look(yaw, pitch, false);
-                }
-                this.next_change = Date.now() + Math.random() * 10000 + 2000;
-            }
+            // if (Date.now() > this.next_change) {
+            //     // look in random direction
+            //     this.staring = Math.random() < 0.3;
+            //     if (!this.staring) {
+            //         const yaw = Math.random() * Math.PI * 2;
+            //         const pitch = (Math.random() * Math.PI/2) - Math.PI/4;
+            //         agent.bot.look(yaw, pitch, false);
+            //     }
+            //     this.next_change = Date.now() + Math.random() * 10000 + 2000;
+            // }
         }
     },
     {
